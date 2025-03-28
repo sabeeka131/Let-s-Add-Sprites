@@ -1,0 +1,102 @@
+import pygame
+import random
+
+pygame.init()
+
+WIDTH, HEIGHT = 500, 400
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Sprite Game")
+
+BLUE = pygame.Color('blue')
+LIGHTBLUE = pygame.Color('lightblue')
+DARKBLUE = pygame.Color('darkblue')
+YELLOW = pygame.Color('yellow')
+MAGENTA = pygame.Color('magenta')
+WHITE = pygame.Color('white')
+ORANGE = pygame.Color('orange')
+
+SPRITE_COLOR_CHANGE_EVENT = pygame.USEREVENT + 1
+BACKGROUND_COLOR_CHANGE_EVENT = pygame.USEREVENT + 2
+
+class Sprite(pygame.sprite.Sprite):
+    def __init__(self, color, width, height):
+        super().__init__()
+        self.image = pygame.Surface([width, height])
+        self.image.fill(color)
+        self.rect = self.image.get_rect()
+        self.velocity = [random.choice([-2, 2]), random.choice([-2, 2])]
+
+    def update(self):
+        self.rect.move_ip(self.velocity)
+        boundary_hit = False
+
+        if self.rect.left <= 0 or self.rect.right >= WIDTH:
+            self.velocity[0] = -self.velocity[0]
+            boundary_hit = True
+        if self.rect.top <= 0 or self.rect.bottom >= HEIGHT:
+            self.velocity[1] = -self.velocity[1]
+            boundary_hit = True
+
+        if boundary_hit:
+            pygame.event.post(pygame.event.Event(SPRITE_COLOR_CHANGE_EVENT))
+            pygame.event.post(pygame.event.Event(BACKGROUND_COLOR_CHANGE_EVENT))
+
+    def change_color(self):
+        self.image.fill(random.choice([YELLOW, MAGENTA, ORANGE, WHITE]))
+
+class PlayerSprite(pygame.sprite.Sprite):
+    def __init__(self, color, width, height):
+        super().__init__()
+        self.image = pygame.Surface([width, height])
+        self.image.fill(color)
+        self.rect = self.image.get_rect()
+
+    def move(self, keys):
+        speed = 5
+        if keys[pygame.K_LEFT] and self.rect.left > 0:
+            self.rect.x -= speed
+        if keys[pygame.K_RIGHT] and self.rect.right < WIDTH:
+            self.rect.x += speed
+        if keys[pygame.K_UP] and self.rect.top > 0:
+            self.rect.y -= speed
+        if keys[pygame.K_DOWN] and self.rect.bottom < HEIGHT:
+            self.rect.y += speed
+
+def change_background_color():
+    return random.choice([BLUE, LIGHTBLUE, DARKBLUE])
+
+all_sprites = pygame.sprite.Group()
+
+sprite1 = Sprite(WHITE, 30, 30)
+sprite1.rect.x, sprite1.rect.y = random.randint(0, WIDTH - 30), random.randint(0, HEIGHT - 30)
+all_sprites.add(sprite1)
+
+player = PlayerSprite(ORANGE, 30, 30)
+player.rect.x, player.rect.y = WIDTH // 2, HEIGHT // 2
+all_sprites.add(player)
+
+running = True
+clock = pygame.time.Clock()
+bg_color = BLUE
+
+while running:
+    screen.fill(bg_color)
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == SPRITE_COLOR_CHANGE_EVENT:
+            sprite1.change_color()
+        elif event.type == BACKGROUND_COLOR_CHANGE_EVENT:
+            bg_color = change_background_color()
+
+    keys = pygame.key.get_pressed()
+    player.move(keys)
+
+    all_sprites.update()
+    all_sprites.draw(screen)
+
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
